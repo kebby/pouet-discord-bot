@@ -1,39 +1,136 @@
 import * as Discord from "discord.js" 
 import fetch from "node-fetch";
+import * as schedule from "node-schedule";
 import * as fs from "fs";
 
-const tokenfile = "bottoken.txt";
-const seenfile = "seenids.json";
+const ordinal = require("ordinal");
 
-// retrieve top of the month from pouet.net
-async function getMonthlyTop()
-{
-    const response = await fetch("https://api.pouet.net/v1/front-page/top-of-the-month/");
-    const result = await response.json() as RankedResult;
-    if (!result.success) return;
-    return result.prods;
+const apiRoot = "https://api.pouet.net/v1/";
+const capitalize = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
+
+interface Config {
+    bottoken: string,
+    pouetchannel: string,
 }
 
-let seenIds: number[] = [];
-
-if (fs.existsSync(seenfile)) {
-    seenIds = JSON.parse(fs.readFileSync(seenfile, { encoding: "utf8" }));
-}
-
-console.log('Hello world');
+const config = JSON.parse(fs.readFileSync("config.json", "utf8")) as Config;
 
 const client = new Discord.Client();
+let pouetChannel: Discord.TextChannel;
 
-// when the client is ready, run this code
-// this event will only trigger one time after logging in
-client.once('ready', () => {
-    console.log('Ready!');
-});
+async function getMonthlyTop()
+{
+    const response = await fetch(apiRoot + "front-page/top-of-the-month/");
+    const result = await response.json() as RankedResult;
+    return result.success ? result.prods : null;
+}
 
-// login to Discord with your app's token
-client.login(fs.readFileSync(tokenfile, { encoding: "utf8" }));
+async function getProd(id: number) {
+    const response = await fetch(apiRoot + "prod/?id=" + id);
+    const result = await response.json() as ProdResult;
+    if (!result.success) return null;
+    return result.success ? result.prod : null;
+}
+
+async function getParty(id: number) {
+    const response = await fetch(apiRoot + "party/?id=" + id);
+    const result = await response.json() as PartyResult;
+    return result.success ? result.party : null;
+}
+
+async function PostProd(channel: Discord.TextChannel, prod: Prod, header: string = "") {
+    const url = 'https://www.pouet.net/prod.php?which=' + prod.id;
+
+    // make a post about it!
+    let embed = new Discord.MessageEmbed()
+        .setColor('#557799')
+        .setTitle(prod.name)
+        .setURL(url)
+        .setImage(prod.screenshot)
+        .setTimestamp(Date.parse(prod.releaseDate));
+
+    // description ...       
+    var desc = prod.types.map(capitalize).join(",");
+    if (desc) desc += " for ";
+    desc += Object.values(prod.platforms).map(pl => pl.name).join(", ");
+
+    // ... invi?
+    if (prod.invitation) {
+        const party = await getParty(parseInt(prod.invitation))
+        if (desc) desc += "\n";
+        desc += `Invitation for ${party.name} ${prod.invitationyear}`;
+    }
+
+    // .. placings
+    for (let pl of prod.placings) {
+        const rank = parseInt(pl.ranking);
+        if (pl.compo_name == "none") {
+            desc += `\nReleased at ${pl.party.name} ${pl.year}`;
+        }
+        else if (rank < 97) {
+            desc += `\nPlaced ${ordinal(rank)} in the  ${pl.compo_name} compo at ${pl.party.name} ${pl.year}`;
+        }
+    }
+
+    if (desc)
+        embed.setDescription(desc);
+
+    // groups
+    if (prod.groups.length)
+        embed.setAuthor(prod.groups.map(g => g.name).join(" & "));
+
+    // credits
+    if (prod.credits.length) {
+        const credits = prod.credits.map(c => `${c.user.nickname} (${c.role})`);
+        embed.addField("Credits", credits, true);
+    }
+
+    // links
+    let dlfield = `**[Download](${prod.download})**`;
+    for (let link of prod.downloadLinks)
+        dlfield += `\n[${capitalize(link.type)}](${link.link})`;
+    embed.addField("Links", dlfield, true);
+
+    channel.send(header + url, embed);
+}
 
 
-getMonthlyTop();
+async function TopOfTheMonth() {
 
-fs.writeFileSync(seenfile, JSON.stringify(seenIds));
+    // get seen prod ids
+    const seenfile = "seenids.json";
+    let seenIds: number[] = [];
+    if (fs.existsSync(seenfile)) {
+        seenIds = JSON.parse(fs.readFileSync(seenfile, "utf8"));
+    }
+
+    let prods = await getMonthlyTop();
+
+    for (let p of prods) {
+        let prod = p.prod;
+
+        // find a prod that we haven't posted about yet
+        let id = parseInt(prod.id);
+        if (seenIds.includes(id))
+            continue;
+
+        // fetch prod details from pouet...
+        prod = await getProd(id);
+        await PostProd(pouetChannel, prod, `New in the top of the month at rank ${p.rank}: `);
+
+        seenIds.push(id);
+        fs.writeFileSync(seenfile, JSON.stringify(seenIds));
+        break; // one is enough
+    }
+}
+
+async function bot() {
+    
+    // log in and get channel
+    await client.login(config.bottoken);    
+    pouetChannel = await client.channels.fetch(config.pouetchannel) as Discord.TextChannel 
+
+    schedule.scheduleJob({ minute: 8 }, TopOfTheMonth);  
+}
+
+bot();

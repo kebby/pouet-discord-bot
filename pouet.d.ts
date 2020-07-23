@@ -7,13 +7,20 @@ interface Platform {
 }
 
 interface Platforms {
-    [id: string]: Platform,
+    [id: number]: Platform,
 }
 
 interface Party {
     id: string,
     name: string,
     web: string,
+    addedDate?: string,
+    addedUser?: string,
+}
+
+interface PartyResult {
+    success: boolean,
+    party: Party,
 }
 
 interface Placing {
@@ -43,6 +50,16 @@ interface User {
     registerDate: string,
 } 
 
+interface Link {
+    type: string,
+    link: string,
+}
+
+interface Credit {
+    user: User,
+    role: string,
+}
+
 interface Prod {
     types: string[],
     platforms: Platforms,
@@ -51,7 +68,6 @@ interface Prod {
     awards: Array<object>,
     id: string,
     name: string,
-    type: string,
     addedDate: string,
     releaseDate: string,
     voteup: string,
@@ -60,8 +76,23 @@ interface Prod {
     voteavg: string,
     download: string,
     addeduser: User,
+    sceneorg: string,
+    demozoo: string,
+    zxdemo: string,
+    invitation?: string,
+    invitationyear?: string,
+    boardID?: object,
+    rank: string,
     cdc: number,
+    downloadLinks: Link[],
+    credits: Credit[],
     screenshot: string,
+}
+
+
+interface ProdResult {
+    success: boolean,
+    prod: Prod,
 }
 
 interface RankedProd {
