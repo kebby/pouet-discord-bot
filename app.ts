@@ -11,6 +11,7 @@ const capitalize = (word: string) => word.charAt(0).toUpperCase() + word.slice(1
 interface Config {
     bottoken: string,
     pouetchannel: string,
+    totm_minute: number,
 }
 
 const config = JSON.parse(fs.readFileSync("config.json", "utf8")) as Config;
@@ -96,41 +97,51 @@ async function PostProd(channel: Discord.TextChannel, prod: Prod, header: string
 
 
 async function TopOfTheMonth() {
+    try {
+        console.log("posting new Top Of The Month...");
 
-    // get seen prod ids
-    const seenfile = "seenids.json";
-    let seenIds: number[] = [];
-    if (fs.existsSync(seenfile)) {
-        seenIds = JSON.parse(fs.readFileSync(seenfile, "utf8"));
+        // get seen prod ids
+        const seenfile = "seenids.json";
+        let seenIds: number[] = [];
+        if (fs.existsSync(seenfile)) {
+            seenIds = JSON.parse(fs.readFileSync(seenfile, "utf8"));
+        }
+
+        let prods = await getMonthlyTop();
+
+        for (let p of prods) {
+            let prod = p.prod;
+
+            // find a prod that we haven't posted about yet
+            let id = parseInt(prod.id);
+            if (seenIds.includes(id))
+                continue;
+
+            console.log(`it is #${prod.id}: ${prod.name}`);
+
+            // fetch prod details from pouet...
+            prod = await getProd(id);
+            await PostProd(pouetChannel, prod, `New in the top of the month at rank ${p.rank}: `);
+
+            seenIds.push(id);
+            fs.writeFileSync(seenfile, JSON.stringify(seenIds));
+            break; // one is enough
+        }
     }
-
-    let prods = await getMonthlyTop();
-
-    for (let p of prods) {
-        let prod = p.prod;
-
-        // find a prod that we haven't posted about yet
-        let id = parseInt(prod.id);
-        if (seenIds.includes(id))
-            continue;
-
-        // fetch prod details from pouet...
-        prod = await getProd(id);
-        await PostProd(pouetChannel, prod, `New in the top of the month at rank ${p.rank}: `);
-
-        seenIds.push(id);
-        fs.writeFileSync(seenfile, JSON.stringify(seenIds));
-        break; // one is enough
+    catch (e) {
+        console.error(`Could not update Top Of The Month: ${e}`);
     }
 }
 
 async function bot() {
-    
-    // log in and get channel
-    await client.login(config.bottoken);    
-    pouetChannel = await client.channels.fetch(config.pouetchannel) as Discord.TextChannel 
 
-    schedule.scheduleJob({ minute: 8 }, TopOfTheMonth);  
+    console.log("pouet-discord-bot starting...");
+    // log in and get channel
+    await client.login(config.bottoken);
+    pouetChannel = await client.channels.fetch(config.pouetchannel) as Discord.TextChannel
+    console.log(`logged in; channel: ${pouetChannel.name}`)
+
+    schedule.scheduleJob({ minute: config.totm_minute }, TopOfTheMonth);  
 }
 
 bot();

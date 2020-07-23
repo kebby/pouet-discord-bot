@@ -21,6 +21,7 @@ You'll need a file called config.json in the same dir looking almost like this:
 ```javascript
 {
   "bottoken": "the secret token that you won't even find in the commit history",
-  "pouetchannel": "channel id to post into"
+  "pouetchannel": "channel id to post into",
+  "totm_minute": 15
 }
 ```
