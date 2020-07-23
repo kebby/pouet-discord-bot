@@ -1,0 +1,9 @@
+.vs
+bin
+obj
+node_modules
+*.js
+*.js.map
+bottoken.txt
+seenids.json
+
