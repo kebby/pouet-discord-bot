@@ -4,7 +4,7 @@ A bot to spam #pouet on demoscene discord with highly relevant pouet stuff.
 
 Made with Typescript and discord.js
 
-(yeah, I'm using Visual Studio. Sue me. It works without tho ?? )
+(yeah, I'm using Visual Studio. Sue me. It works without tho 😊 )
 
 ## Building
 
