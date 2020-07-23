@@ -1,5 +1,6 @@
 // definitions for pouet.net API
 // not complete.
+// also, public domain.
 
 declare namespace pouet {
 

@@ -1,6 +1,6 @@
 //
 // Pouet Discord Bot (aka "Klaxon")
-// (C) Tammo Hinrichs 2020, see LICENSE for details (it's MIT)
+// (C) Tammo Hinrichs 2020, see LICENSE for details (spoilers: it's MIT)
 //
 
 import * as Discord from "discord.js" 
@@ -52,9 +52,13 @@ async function getParty(id: number) {
 const client = new Discord.Client();
 let pouetChannel: Discord.TextChannel;
 
-async function PostProd(channel: Discord.TextChannel, prod: pouet.Prod, header: string = "") {
-    const url = 'https://www.pouet.net/prod.php?which=' + prod.id;
+// post a prod to channel as a rich embed
+async function PostProd(channel: Discord.TextChannel, id: number, header: string = "") {
+    // fetch prod details from pouet...
+    const prod = await getProd(id);
 
+    // .... and make a post about it!
+    const url = 'https://www.pouet.net/prod.php?which=' + id;
     let embed = new Discord.MessageEmbed()
         .setColor('#557799')
         .setTitle(prod.name)
@@ -104,7 +108,7 @@ async function PostProd(channel: Discord.TextChannel, prod: pouet.Prod, header: 
         dlfield += `\n[${capitalize(link.type)}](${link.link})`;
     embed.addField("Links", dlfield, true);
 
-    channel.send(header + url, embed);
+    await channel.send(header + url, embed);
 }
 
 //------------------------------------------------------------------------------
@@ -133,10 +137,7 @@ async function TopOfTheMonth() {
 
             console.log(`it is #${prod.id}: ${prod.name}`);
 
-            // fetch prod details from pouet...
-            prod = await getProd(id);
-            // .... and make a post about it!
-            await PostProd(pouetChannel, prod, `New in the top of the month at rank ${p.rank}: `);
+            await PostProd(pouetChannel, id, `New in the top of the month at rank ${p.rank}: `);
 
             seenIds.push(id);
             break; // one is enough
@@ -158,8 +159,8 @@ async function Bot() {
 
     // log in and get channel
     await client.login(config.bottoken);
-    pouetChannel = await client.channels.fetch(config.pouetchannel) as Discord.TextChannel
-    console.log(`logged in; channel: ${pouetChannel.name}`)
+    pouetChannel = await client.channels.fetch(config.pouetchannel) as Discord.TextChannel;
+    console.log(`logged in; channel: ${pouetChannel.name}`);
 
     schedule.scheduleJob({ minute: config.totm_minute }, TopOfTheMonth);  
 }
