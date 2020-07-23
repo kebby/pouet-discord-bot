@@ -1,106 +1,117 @@
-// defitions for pouet.net API
+// definitions for pouet.net API
+// not complete.
 
-interface Platform {
-    name: string,
-    icon: string,
-    slug: string,
-}
+declare namespace pouet {
 
-interface Platforms {
-    [id: number]: Platform,
-}
+    interface Platform {
+        name: string,
+        icon: string,
+        slug: string,
+    }
 
-interface Party {
-    id: string,
-    name: string,
-    web: string,
-    addedDate?: string,
-    addedUser?: string,
-}
+    interface Platforms {
+        [id: number]: Platform,
+    }
 
-interface PartyResult {
-    success: boolean,
-    party: Party,
-}
+    interface Party {
+        id: string,
+        name: string,
+        web: string,
+        addedDate?: string,
+        addedUser?: string,
+    }
 
-interface Placing {
-    party: Party,
-    compo: string,
-    ranking: string,
-    year: string,
-    compo_name: string,
-}
+    interface PartyResult {
+        success: boolean,
+        party: Party,
+    }
 
-interface Group {
-    id: string,
-    name: string,
-    acronym: string,
-    disambiguation: string,
-    web: string,
-    addedUser: string,
-    addedDate: string,
-}
+    interface Placing {
+        party: Party,
+        compo: string,
+        ranking: string,
+        year: string,
+        compo_name: string,
+    }
 
-interface User {
-    id: string,
-    nickname: string,
-    level: string,
-    avatar: string,
-    glops: string,
-    registerDate: string,
-} 
+    interface Group {
+        id: string,
+        name: string,
+        acronym: string,
+        disambiguation: string,
+        web: string,
+        addedUser: string,
+        addedDate: string,
+    }
 
-interface Link {
-    type: string,
-    link: string,
-}
+    interface User {
+        id: string,
+        nickname: string,
+        level: string,
+        avatar: string,
+        glops: string,
+        registerDate: string,
+    }
 
-interface Credit {
-    user: User,
-    role: string,
-}
+    interface Link {
+        type: string,
+        link: string,
+    }
 
-interface Prod {
-    types: string[],
-    platforms: Platforms,
-    placings: Placing[],
-    groups: Group[],
-    awards: Array<object>,
-    id: string,
-    name: string,
-    addedDate: string,
-    releaseDate: string,
-    voteup: string,
-    votepig: string,
-    votedown: string,
-    voteavg: string,
-    download: string,
-    addeduser: User,
-    sceneorg: string,
-    demozoo: string,
-    zxdemo: string,
-    invitation?: string,
-    invitationyear?: string,
-    boardID?: object,
-    rank: string,
-    cdc: number,
-    downloadLinks: Link[],
-    credits: Credit[],
-    screenshot: string,
-}
+    interface Credit {
+        user: User,
+        role: string,
+    }
 
+    interface Award {
+        id: string,
+        prodid: string,
+        type: string,
+        category: string,
+    }
 
-interface ProdResult {
-    success: boolean,
-    prod: Prod,
-}
+    interface Prod {
+        types: string[],
+        platforms: Platforms,
+        placings: Placing[],
+        groups: Group[],
+        awards: Award[],
+        id: string,
+        name: string,
+        addedDate: string,
+        releaseDate: string,
+        voteup: string,
+        votepig: string,
+        votedown: string,
+        voteavg: string,
+        download: string,
+        addeduser: User,
+        sceneorg: string,
+        demozoo: string,
+        csdb: string,
+        zxdemo: string,
+        invitation?: string,
+        invitationyear?: string,
+        boardID?: string,
+        rank: string,
+        cdc: number,
+        downloadLinks: Link[],
+        credits: Credit[],
+        screenshot: string,
+    }
 
-interface RankedProd {
-    rank: number,
-    prod: Prod,
-}
+    interface ProdResult {
+        success: boolean,
+        prod: Prod,
+    }
 
-interface RankedResult {
-    success: boolean,
-    prods: RankedProd[],
+    interface TopListEntry {
+        rank: number,
+        prod: Prod,
+    }
+
+    interface TopListResult {
+        success: boolean,
+        prods: TopListEntry[],
+    }
 }
