@@ -22,6 +22,7 @@ You'll need a file called config.json in the same dir and it shall look a little
 {
   "bottoken": "the secret token that you won't even find in the commit history",
   "pouetchannel": "channel id to post into",
-  "totm_minute": 15
+  "totm_minute": 5,
+  "totm_maxrank": 10
 }
 ```

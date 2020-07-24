@@ -20,6 +20,7 @@ interface Config {
     bottoken: string,
     pouetchannel: string,
     totm_minute: number,
+    totm_maxrank: number,
 }
 
 const config = JSON.parse(fs.readFileSync("config.json", "utf8")) as Config;
@@ -132,7 +133,7 @@ async function TopOfTheMonth() {
 
             // find a prod that we haven't posted about yet
             let id = parseInt(prod.id);
-            if (seenIds.includes(id))
+            if (seenIds.includes(id) || p.rank > config.totm_maxrank)
                 continue;
 
             console.log(`it is #${prod.id}: ${prod.name}`);
