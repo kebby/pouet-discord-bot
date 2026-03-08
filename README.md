@@ -8,11 +8,18 @@ Made with Typescript and discord.js
 
 ## Building
 
-"npm update" and "npm run build", basically 
+"npm install" and "npm run build", basically 
 
 ## Running
 
 You can do it, I trust you (Hint: "npm start"). First set up a bot at Discord and read the next section tho.
+
+### Actually running
+
+If you want to run it persistently, I'd suggest using Forever:
+
+* Install Forever: `sudo npm install -g forever`
+* Run the bot forever: `forever start app.js`
 
 ## Config
 

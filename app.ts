@@ -1,14 +1,14 @@
 //
 // Pouet Discord Bot (aka "Klaxon")
-// (C) Tammo Hinrichs 2020, see LICENSE for details (spoilers: it's MIT)
+// (C) Tammo Hinrichs 2020-2021, see LICENSE for details (spoilers: it's MIT)
 //
 
 import * as Discord from "discord.js" 
-import fetch from "node-fetch";
 import * as schedule from "node-schedule";
 import * as fs from "fs";
 
 const ordinal = require("ordinal");
+const escape = require("markdown-escape");
 
 const apiRoot = "https://api.pouet.net/v1/";
 const capitalize = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
@@ -23,7 +23,7 @@ interface Config {
     totm_maxrank: number,
 }
 
-const config = JSON.parse(fs.readFileSync("config.json", "utf8")) as Config;
+const config: Config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 
 //------------------------------------------------------------------------------
 // Pouet API helper functions
@@ -82,16 +82,26 @@ async function PostProd(channel: Discord.TextChannel, id: number, header: string
     // .. placings
     for (let pl of prod.placings) {
         const rank = parseInt(pl.ranking);
-        if (pl.compo_name == "none") {
-            desc += `\nReleased at ${pl.party.name} ${pl.year}`;
+        let party = "";
+        if (pl.party.name) {
+            party = ` at ${pl.party.name}`;
+            if (pl.year)
+                party = party + ` ${pl.year}`;
         }
-        else if (rank < 97) {
-            desc += `\nPlaced ${ordinal(rank)} in the  ${pl.compo_name} compo at ${pl.party.name} ${pl.year}`;
+        if (pl.compo_name == "none" || !pl.compo_name) {
+            if (party)
+                desc += `\nReleased${party}`;
+        }
+        else if (rank > 0 && rank < 97) {
+            desc += `\nPlaced ${ordinal(rank)} in the ${pl.compo_name} compo${party}`;
+        }
+        else {
+            desc += `\nFor the ${pl.compo_name} compo${party}`;
         }
     }
 
     if (desc)
-        embed.setDescription(desc);
+        embed.setDescription(escape(desc));
 
     // groups
     if (prod.groups.length)
@@ -99,14 +109,14 @@ async function PostProd(channel: Discord.TextChannel, id: number, header: string
 
     // credits
     if (prod.credits.length) {
-        const credits = prod.credits.map(c => `${c.user.nickname} (${c.role})`);
+        const credits = prod.credits.map(c => escape(`${c.user.nickname} (${c.role})`));
         embed.addField("Credits", credits, true);
     }
 
     // links
-    let dlfield = `**[Download](${prod.download})**`;
-    for (let link of prod.downloadLinks)
-        dlfield += `\n[${capitalize(link.type)}](${link.link})`;
+    let dlfield = `**[Download](${prod.download.replace(" ","%20")})**`;
+    for (let link of prod.downloadLinks.filter(l => l.link.startsWith("http")))
+        dlfield += `\n[${capitalize(link.type)}](${link.link.replace(" ","%20")})`;
     embed.addField("Links", dlfield, true);
 
     await channel.send(header + url, embed);
