@@ -4,5 +4,8 @@ obj
 node_modules
 *.js
 *.js.map
+*.tsbuildinfo
 config.json
 seenids.json
+seennews.json
+coolprods.json

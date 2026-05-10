@@ -115,4 +115,23 @@ declare namespace pouet {
         success: boolean,
         prods: TopListEntry[],
     }
+
+    interface DumpFile {
+        filename: string,
+        url: string,
+        size_in_bytes: number,
+    }
+
+    interface Dump {
+        prods: DumpFile,
+        parties: DumpFile,
+        groups: DumpFile,
+        boards: DumpFile,
+    }
+
+    interface DumpList {
+        latest: Dump,
+        dumps: {[date: string]: Dump},
+    }
+
 }
