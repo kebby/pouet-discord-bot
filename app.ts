@@ -124,8 +124,6 @@ async function PostProd(
       name: prod.groups.map((g) => g.name).join(" & "),
     });
 
-  const fields: Discord.APIEmbedField[] = [];
-
   // credits
   if (prod.credits.length) {
     const credits = prod.credits.map((c) =>
@@ -183,7 +181,7 @@ async function TopOfTheMonth() {
       break; // one is enough
     }
 
-    fs.writeFileSync(seenfile, JSON.stringify(seenIds.slice(-100)));
+    fs.writeFileSync(seenfile, JSON.stringify(seenIds.slice(-1000)));
   } catch (e) {
     console.error(`Could not update Top Of The Month: ${e}`);
   }
@@ -216,33 +214,40 @@ async function RandomCoolProd() {
     if (dumpList.latest.prods.filename != prodCache?.filename) {
       console.log("prod cache is invalid, fetching new dump");
 
-      const dresp = await fetch(dumpList.latest.prods.url);
-      if (!dresp.body) return;
+      try {
+        const dresp = await fetch(dumpList.latest.prods.url);
+        if (!dresp.body) return;
 
-      prodCache = { filename: dumpList.latest.prods.filename, ids: [] };
+        const ids: number[] = [];
 
-      // filter down to only ids of applicable prods
-      // using streaming gunzip/JSON parsing so we can still run on low memory
-      const pipeline = chain([
-        Readable.from(dresp.body),
-        createGunzip(),
-        pick.withParser({ filter: "prods" }),
-        streamArray(),
-      ]);
+        // filter down to only ids of applicable prods
+        // using streaming gunzip/JSON parsing so we can still run on low memory
+        const pipeline = chain([
+          Readable.from(dresp.body),
+          createGunzip(),
+          pick.withParser({ filter: "prods" }),
+          streamArray(),
+        ]);
 
-      for await (const { value } of pipeline) {
-        const prod = value as pouet.Prod;
-        const id = parseInt(prod.id);
-        if (
-          parseInt(prod.voteup) >= 30 &&
-          parseFloat(prod.voteavg) >= 0.5 &&
-          !seenIds.includes(id)
-        )
-          prodCache.ids.push(id);
+        for await (const { value } of pipeline) {
+          const prod = value as pouet.Prod;
+          const id = parseInt(prod.id);
+          if (
+            parseInt(prod.voteup) >= 30 &&
+            parseFloat(prod.voteavg) >= 0.5 &&
+            !seenIds.includes(id)
+          )
+            ids.push(id);
+        }
+
+        prodCache = { filename: dumpList.latest.prods.filename, ids: ids };
+        fs.writeFileSync(cachefile, JSON.stringify(prodCache));
+      } catch (e) {
+        console.error("could not get prod dump", e);
       }
-
-      fs.writeFileSync(cachefile, JSON.stringify(prodCache));
     }
+
+    if (!prodCache) return;
 
     console.log(`${prodCache.ids.length} prods eligible`);
 
@@ -254,7 +259,7 @@ async function RandomCoolProd() {
     await PostProd(pouetChannel, id, "Random cool prod of the day: ");
 
     seenIds.push(id);
-    fs.writeFileSync(seenfile, JSON.stringify(seenIds.slice(-100)));
+    fs.writeFileSync(seenfile, JSON.stringify(seenIds.slice(-1000)));
   } catch (err) {
     console.error("could not post random prod", err);
   }
@@ -350,7 +355,6 @@ async function Bot() {
   schedule.scheduleJob({ minute: config.totm_minute }, TopOfTheMonth);
   schedule.scheduleJob({ hour: config.potd_hour, minute: 5 }, RandomCoolProd);
   SceneOrgNews();
-
 }
 
 Bot();
