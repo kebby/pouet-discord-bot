@@ -191,7 +191,6 @@ async function PostProd(
 
 async function TopOfTheMonth() {
     try {
-        console.log("posting new Top Of The Month...");
 
         // get seen prod ids
         const seenfile = "seenids.json";
@@ -210,6 +209,7 @@ async function TopOfTheMonth() {
             let id = parseInt(prod.id);
             if (seenIds.includes(id) || p.rank > config.totm_maxrank) continue;
 
+            console.log("posting new Top Of The Month...");
             console.log(`it is #${prod.id}: ${prod.name}`);
 
             await PostProd(
@@ -362,13 +362,12 @@ async function SceneOrgNews() {
 
             let attachment: Discord.AttachmentBuilder | null = null;
 
-            // parse 3rd party feed info
-
-            console.log(item.title);
+            // parse federated feed info
             const re = /^\\\[ \*\*(.+?)\*\* \\\] \[(.+?)\]\((.+?)\)\s*(.*)/gs;
             const match = re.exec(description);
 
             if (match) {
+                // set fields
                 embed
                     .setTitle(match[2])
                     .setURL(match[3])
@@ -380,9 +379,10 @@ async function SceneOrgNews() {
                     });
 
                 try {
-                    const lol = await fetch(match[3]);
-                    const lol2 = await lol.text();
-                    const $ = cheerio.load(lol2);
+                    // follow the feed link and let's see if we can extract some metadata
+                    const resp = await fetch(match[3]);
+                    const html = await resp.text();
+                    const $ = cheerio.load(html);
 
                     let hasColor = false;
                     let iconURL: string = "";
@@ -391,12 +391,11 @@ async function SceneOrgNews() {
                         const content = tag.attr("content");
                         if (content) {
                             switch (tag.attr("name") || tag.attr("property")) {
-                                case "theme-color":
+                                case "theme-color": // set embed stripe color to the site's theme color 
                                     embed.setColor(content as any);
                                     hasColor = true;
-                                    console.log("color1", content);
                                     break;
-                                case "og:image":
+                                case "og:image": // set embed image
                                     const uri = new URL(content, match[3]);
                                     embed.setImage(uri.toString());
                                     break;
@@ -406,21 +405,20 @@ async function SceneOrgNews() {
                     $("link").each((_, el) => {
                         const tag = $(el);
                         const content = tag.attr("href");
-                        const type = tag.attr("type");
                         if (content) {
                             switch (tag.attr("rel")) {
-                                case "icon":
+                                case "icon": // find author icon
                                     if (!iconURL)
                                         iconURL = new URL(
                                             content,
                                             match[3],
                                         ).toString();
-                                    console.log("icon", content);
                                     break;
                             }
                         }
                     });
 
+                    // set default color from feed name
                     if (!hasColor) {
                         const color =
                             "#" +
@@ -428,16 +426,15 @@ async function SceneOrgNews() {
                                 .toString(16)
                                 .padStart(6, "0");
                         embed.setColor(color as any);
-                        console.log("color2", color);
                     }
 
+                    // set author icon form site's favicon
                     if (iconURL) {
                         if (iconURL.toLowerCase().endsWith("svg")) {
-                            console.log("yo svg");
-                            const lol2 = await fetch(iconURL);
-                            const lol3 = await lol2.text();
-
-                            const png = await convertSvgToPngBuffer(lol3);
+                            // convert SVG to PNG and attach
+                            const resp = await fetch(iconURL);
+                            const svg = await resp.text();
+                            const png = await convertSvgToPngBuffer(svg);
                             attachment = new Discord.AttachmentBuilder(png, {
                                 name: "icon.png",
                             });
@@ -465,7 +462,7 @@ async function SceneOrgNews() {
                         iconURL: "https://news.scene.org/favicon.png",
                     });
             }
-            console.log(embed);
+            //console.log(embed);
             const payload: Discord.MessageCreateOptions = { embeds: [embed] };
             if (attachment) payload.files = [attachment];
             await newsChannel.send(payload);
