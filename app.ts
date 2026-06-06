@@ -36,27 +36,7 @@ interface Config {
 
 const config: Config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 
-let isWasmInitialized = false;
-
 function convertSvgToPngBuffer(svgString: string) {
-    /*
-    // 1. Initialize WASM once at runtime
-    if (!isWasmInitialized) {
-        // Fetch and read the compiled WASM binary distributed within the package
-        const wasmBuffer = fs.readFileSync(
-            "node_modules/svg2png-wasm/svg2png_wasm_bg.wasm",
-        );
-        await initialize(wasmBuffer);
-        isWasmInitialized = true;
-    }
-
-    // 2. Convert SVG string directly to a PNG Uint8Array, then cast to Buffer
-    const uint8Array = await svg2png(svgString, {
-        height: 80,
-    });
-
-    return Buffer.from(uint8Array);*/
-
     return new Promise<Buffer>((resolve, reject) =>
         (svg2img as any)(
             svgString,
@@ -191,7 +171,6 @@ async function PostProd(
 
 async function TopOfTheMonth() {
     try {
-
         // get seen prod ids
         const seenfile = "seenids.json";
         let seenIds: number[] = [];
@@ -391,7 +370,7 @@ async function SceneOrgNews() {
                         const content = tag.attr("content");
                         if (content) {
                             switch (tag.attr("name") || tag.attr("property")) {
-                                case "theme-color": // set embed stripe color to the site's theme color 
+                                case "theme-color": // set embed stripe color to the site's theme color
                                     embed.setColor(content as any);
                                     hasColor = true;
                                     break;
